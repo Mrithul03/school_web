@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'vehicle.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'pvtschoolvehicle',
+        'NAME': 'school',
         'USER':'root',
         'PASSWORD':'mrithul@03'
     }

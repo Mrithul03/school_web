@@ -1,16 +1,21 @@
 from django.shortcuts import render, redirect
 from django.views import View
 
-from .models import UserProfile,School
+from .models import UserProfile,School,Student,VehicleLocation,Vehicle
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 import requests
 from django.contrib import messages
+from rest_framework.authentication import TokenAuthentication
+from django.http import JsonResponse
+from django.utils import timezone
+import json
+
 
 # Create your views here.
 
@@ -20,6 +25,7 @@ def login_user(request):
     school_code = request.data.get('school_code')
     phone =  request.data.get('phone')
     password = request.data.get('password')
+    role = request.data.get('role')  
     # fcm_token = request.data.get('fcm_token')  # 👈 Get FCM token from frontend
 
     print(f"📥 Login attempt:school_code={school_code} phone={phone}, password={password}")
@@ -39,10 +45,30 @@ def login_user(request):
         if not user.check_password(password):
             print("❌ Invalid password")
             return Response({'error': 'Invalid password'}, status=401)
+        
+        # ✅ Role check
+        if role and profile.role.lower() != role.lower():
+            print("❌ Role mismatch")
+            return Response({'error': f'User is not a {role}'}, status=401)
 
         # ✅ Clear previous tokens
         Token.objects.filter(user=user).delete()
         token = Token.objects.create(user=user)
+
+        if profile.role == 'parent':
+            try:
+        # Check if already linked student has the same phone
+                if profile.student and profile.student.phone == phone:
+                    print(f"✅ Already linked to student ID: {profile.student.id}")
+                else:
+            # Try to find a new matching student
+                    matched_student = Student.objects.get(phone=phone)
+                    profile.student = matched_student
+                    profile.save()
+                    print(f"✅ Linked to new student ID: {matched_student.id}")
+            except Student.DoesNotExist:
+                profile.student = None
+                print("ℹ️ No matching student found for this phone")
 
         # if fcm_token:
         #     profile.fcm_token = fcm_token
@@ -55,8 +81,93 @@ def login_user(request):
             'name': user.username,
             'phone': profile.phone,
             'role': profile.role,
+            'vehicle': {
+        'id': profile.vehicle.id if profile.vehicle else None,
+        'vehicle_number': profile.vehicle.vehicle_number if profile.vehicle else None,
+    },
         }, status=status.HTTP_200_OK)
 
     except UserProfile.DoesNotExist:
         print("❌ UserProfile not found")
         return Response({'error': 'User does not exist'}, status=404)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_vehicle_location(request):
+    lat = request.data.get('latitude')
+    lon = request.data.get('longitude')
+    vehicle_id = request.data.get('vehicle_id')
+    
+    vehicle = Vehicle.objects.get(id=vehicle_id)
+    VehicleLocation.objects.update_or_create(
+        vehicle=vehicle,
+        defaults={'latitude': lat, 'longitude': lon}
+    )
+    return Response({"status": "Location updated"})
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def current_user_profile(request):
+    try:
+        user = request.user
+        profile = UserProfile.objects.select_related('school', 'vehicle', 'student').get(user=user)
+
+        data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'phone': profile.phone,
+            'role': profile.role,
+            'school': {
+                'id': profile.school.id if profile.school else None,
+                'name': profile.school.name if profile.school else None,
+            },
+            'vehicle': {
+                'id': profile.vehicle.id if profile.vehicle else None,
+                'vehicle_number': profile.vehicle.vehicle_number if profile.vehicle else None,
+            },
+            'student': {
+                'id': profile.student.id if profile.student else None,
+                'name': profile.student.name if profile.student else None,
+            }
+        }
+
+        return JsonResponse(data)
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'UserProfile not found'}, status=404)
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def update_location(request):
+    try:
+        data = request.data
+        print("📥 Incoming location data:", data)
+        
+        VehicleLocation.objects.create(
+            vehicle_id=data['vehicle_id'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            status=data.get('status')
+        )
+        return Response({"success": True})
+    except Exception as e:
+        print("❌ Exception occurred:", e)
+        return Response({"success": False, "error": str(e)}, status=500)
+
+@api_view(['GET'])
+def get_latest_location(request, vehicle_id):
+    try:
+        latest_location = VehicleLocation.objects.filter(vehicle_id=vehicle_id).latest('updated_at')
+        return Response({
+            "latitude": latest_location.latitude,
+            "longitude": latest_location.longitude,
+            "status": latest_location.status,
+            "updated_at": latest_location.updated_at
+        })
+    except VehicleLocation.DoesNotExist:
+        return Response({"error": "No location data found"}, status=404)
+
+

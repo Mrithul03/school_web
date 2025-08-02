@@ -51,7 +51,7 @@ class Shift(models.Model):
     
 class Student(models.Model):
     name = models.CharField(max_length=100)
-    parent = models.ForeignKey(User, on_delete=models.CASCADE, related_name='children')
+    parent = models.CharField(max_length=123)
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle,on_delete=models.SET_NULL, null=True, blank=True)
     phone = models.CharField(max_length=15)
@@ -77,3 +77,20 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.student.name} - {self.month.strftime('%B %Y')} - {'Paid' if self.is_paid else 'Pending'}"
+
+class VehicleLocation(models.Model):
+    STATUS_CHOICES = (
+        ('running', 'Running'),
+        ('stopped', 'Stopped'),
+    )
+
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    updated_at = models.DateTimeField(auto_now=True)
+    ride_start = models.DateTimeField(null=True, blank=True)
+    ride_stop = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='stopped')
+
+    def __str__(self):
+        return f"{self.vehicle} - {self.updated_at}"
