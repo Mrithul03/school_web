@@ -126,17 +126,46 @@ def current_user_profile(request):
             'vehicle': {
                 'id': profile.vehicle.id if profile.vehicle else None,
                 'vehicle_number': profile.vehicle.vehicle_number if profile.vehicle else None,
+                'driver' :profile.vehicle.driver if profile.vehicle else None,
             },
             'student': {
                 'id': profile.student.id if profile.student else None,
                 'name': profile.student.name if profile.student else None,
+                'parent': profile.student.parent if profile.student else None,
+
             }
         }
 
         return JsonResponse(data)
     except UserProfile.DoesNotExist:
         return JsonResponse({'error': 'UserProfile not found'}, status=404)
+    
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def students_list(request):
+    students = Student.objects.select_related('school', 'vehicle').all()
 
+    data = []
+    for student in students:
+        data.append({
+            'id': student.id,
+            'name': student.name,
+            'parent': student.parent,
+            'phone': student.phone,
+            'trip_number': student.trip_number,
+            'school': {
+                'id': student.school.id if student.school else None,
+                'name': student.school.name if student.school else None,
+            },
+            'vehicle': {
+                'id': student.vehicle.id if student.vehicle else None,
+                'vehicle_number': student.vehicle.vehicle_number if student.vehicle else None,
+                'driver': student.vehicle.driver if student.vehicle and hasattr(student.vehicle, 'driver') else None,
+            }
+        })
+
+    return JsonResponse(data, safe=False)
 
 
 @api_view(['POST'])
