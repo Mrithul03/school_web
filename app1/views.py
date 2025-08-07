@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views import View
 
-from .models import UserProfile,School,Student,VehicleLocation,Vehicle
+from .models import UserProfile,School,Student,VehicleLocation,Vehicle,StudentRoute
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -187,6 +187,7 @@ def update_location(request):
         return Response({"success": False, "error": str(e)}, status=500)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_latest_location(request, vehicle_id):
     try:
         latest_location = VehicleLocation.objects.filter(vehicle_id=vehicle_id).latest('updated_at')
@@ -200,3 +201,34 @@ def get_latest_location(request, vehicle_id):
         return Response({"error": "No location data found"}, status=404)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_student_routes(request):
+    routes = StudentRoute.objects.all().select_related('student', 'vehicle', 'school')
+
+    data = []
+    for route in routes:
+        data.append({
+            'id': route.id,
+            'student':{
+                'id': route.student.id if route.student else None,
+                'name': route.student.name if route.student else None,
+                'home_lat':route.student.home_lat if route.student else None,
+                'home_lng' :route.student.home_lng if route.student else None,
+                'parent' :route.student.parent if route.student else None,
+            },
+            'vehicle': {
+                'id': route.vehicle.id if route.vehicle else None,
+                'vehicle_number': route.vehicle.vehicle_number if route.vehicle else None,
+                'driver': route.vehicle.driver if route.vehicle and hasattr(route.vehicle, 'driver') else None,
+            },
+            'school' :{
+                'id': route.school.id if route.school else None,
+                'name': route.school.name if route.school else None,
+            },
+            'shift': route.shift,
+            'trip_number': route.trip_number,
+            'route_order': route.route_order,
+        })
+
+    return Response(data)

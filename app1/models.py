@@ -35,19 +35,19 @@ class Vehicle(models.Model):
     def __str__(self):
         return self.vehicle_number
     
-class Shift(models.Model):
-    SHIFT_CHOICES = (
-        ('morning', 'Morning'),
-        ('evening', 'Evening'),
-    )
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
-    school = models.ForeignKey(School, on_delete=models.CASCADE)
-    shift_type = models.CharField(max_length=10, choices=SHIFT_CHOICES)
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+# class Shift(models.Model):
+#     SHIFT_CHOICES = (
+#         ('morning', 'Morning'),
+#         ('evening', 'Evening'),
+#     )
+#     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+#     school = models.ForeignKey(School, on_delete=models.CASCADE)
+#     shift_type = models.CharField(max_length=10, choices=SHIFT_CHOICES)
+#     start_time = models.TimeField()
+#     end_time = models.TimeField()
 
-    def __str__(self):
-        return f"{self.vehicle} - {self.shift_type}"
+#     def __str__(self):
+#         return f"{self.vehicle} - {self.shift_type}"
     
 class Student(models.Model):
     name = models.CharField(max_length=100)
@@ -55,18 +55,29 @@ class Student(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle,on_delete=models.SET_NULL, null=True, blank=True)
     phone = models.CharField(max_length=15)
-    trip_number = models.IntegerField()
+    home_lat = models.DecimalField(max_digits=9, decimal_places=6)
+    home_lng = models.DecimalField(max_digits=9, decimal_places=6)
 
     def __str__(self):
         return self.name
     
-class Route(models.Model):
-    shift = models.OneToOneField(Shift, on_delete=models.CASCADE)
-    polyline = models.TextField(help_text="Encoded polyline or JSON of LatLngs")
-    trip = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='student_trips')
+class StudentRoute(models.Model):
+    SHIFT_CHOICES = (
+    ('morning', 'Morning'),
+    ('evening', 'Evening'),
+    )
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    shift = models.CharField(max_length=10, choices=SHIFT_CHOICES)
+    trip_number = models.IntegerField()
+    route_order = models.PositiveIntegerField(help_text="Order of pickup/drop in the route")
+
+    class Meta:
+        unique_together = ('student', 'shift', 'trip_number')
 
     def __str__(self):
-        return f"Route for {self.shift}"
+        return f"{self.student.name} - {self.shift} Trip {self.trip_number}"
 
 class Payment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)

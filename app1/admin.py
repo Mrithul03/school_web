@@ -2,8 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
-    School, Vehicle, Student, Shift,
-    Route, Payment, UserProfile
+    School, Vehicle, Student,
+    Payment, UserProfile,StudentRoute
 )
 
 # Inline to show UserProfile inside User admin
@@ -47,7 +47,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_filter = ('role', 'school')
     search_fields = ('user__username', 'phone')
 
+admin.site.register(StudentRoute)
+
 # Optional: register other models
-admin.site.register(Shift)
-admin.site.register(Route)
 admin.site.register(Payment)
