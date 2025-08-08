@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import dj_database_url
 
 from pathlib import Path
 
@@ -83,14 +84,22 @@ WSGI_APPLICATION = 'vehicle.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'school',
+#         'USER':'root',
+#         'PASSWORD':'mrithul@03'
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'school',
-        'USER':'root',
-        'PASSWORD':'mrithul@03'
-    }
+    'default': dj_database_url.config(
+        default='postgres://root:PGrERgSS9aZd31DCd8nd8igEtrO6fN4A@dpg-d2b3pkjuibrs73f88jgg-a:5432/school_manager_4pax'
+    )
 }
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
