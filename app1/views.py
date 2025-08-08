@@ -202,7 +202,7 @@ def get_latest_location(request, vehicle_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_student_routes(request):
     routes = StudentRoute.objects.all().select_related('student', 'vehicle', 'school')
 

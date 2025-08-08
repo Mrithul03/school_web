@@ -55,8 +55,8 @@ class Student(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle,on_delete=models.SET_NULL, null=True, blank=True)
     phone = models.CharField(max_length=15)
-    home_lat = models.DecimalField(max_digits=9, decimal_places=6)
-    home_lng = models.DecimalField(max_digits=9, decimal_places=6)
+    home_lat = models.DecimalField(max_digits=9, decimal_places=6,null=True, blank=True)
+    home_lng = models.DecimalField(max_digits=9, decimal_places=6,null=True, blank=True)
 
     def __str__(self):
         return self.name
