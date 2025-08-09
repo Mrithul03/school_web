@@ -99,6 +99,11 @@ DATABASES = {
     )
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://school-web-1dkv.onrender.com'
+]
+
+
 
 
 # Password validation
@@ -150,7 +155,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ]
 }
-\
+
 # Channels Redis configuration (WebSocket layer)
 CHANNEL_LAYERS = {
     'default': {
