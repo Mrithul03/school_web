@@ -263,3 +263,32 @@ def get_student_routes(request, vehicle_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])  # remove if not needed
+def update_student_location(request, student_id):
+    try:
+        student = Student.objects.get(id=student_id)
+    except Student.DoesNotExist:
+        return JsonResponse({"error": "Student not found"}, status=404)
+
+    home_lat = request.data.get('home_lat')
+    home_lng = request.data.get('home_lng')
+
+    if home_lat is None or home_lng is None:
+        return JsonResponse({"error": "home_lat and home_lng are required"}, status=400)
+
+    student.home_lat = home_lat
+    student.home_lng = home_lng
+    student.save()
+
+    return JsonResponse({
+        "message": "Student location updated successfully",
+        "student": {
+            "id": student.id,
+            "name": student.name,
+            "home_lat": student.home_lat,
+            "home_lng": student.home_lng
+        }
+    })
+
