@@ -84,20 +84,20 @@ WSGI_APPLICATION = 'vehicle.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'school',
-#         'USER':'root',
-#         'PASSWORD':'mrithul@03'
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgres://root:PGrERgSS9aZd31DCd8nd8igEtrO6fN4A@dpg-d2b3pkjuibrs73f88jgg-a:5432/school_manager_4pax'
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'school',
+        'USER':'root',
+        'PASSWORD':'mrithul@03'
+    }
 }
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default='postgres://root:PGrERgSS9aZd31DCd8nd8igEtrO6fN4A@dpg-d2b3pkjuibrs73f88jgg-a:5432/school_manager_4pax'
+#     )
+# }
 
 CSRF_TRUSTED_ORIGINS = [
     'https://school-web-1dkv.onrender.com'

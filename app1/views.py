@@ -167,6 +167,28 @@ def students_list(request):
 
     return JsonResponse(data, safe=False)
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def vehicle_location(request):
+    try:
+        location = VehicleLocation.objects.select_related('vehicle').latest('updated_at')
+        data = {
+            'id': location.id,
+            'vehicle_id': location.vehicle.id,
+            'vehicle_name': str(location.vehicle),
+            'latitude': location.latitude,
+            'longitude': location.longitude,
+            'updated_at': location.updated_at,
+            'ride_start': location.ride_start,
+            'ride_stop': location.ride_stop,
+            'status': location.status,
+        }
+        return JsonResponse(data)
+    except VehicleLocation.DoesNotExist:
+        return JsonResponse({'error': 'location not found'}, status=404)
+
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -185,6 +207,7 @@ def update_location(request):
     except Exception as e:
         print("❌ Exception occurred:", e)
         return Response({"success": False, "error": str(e)}, status=500)
+    
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -203,32 +226,40 @@ def get_latest_location(request, vehicle_id):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def get_student_routes(request):
-    routes = StudentRoute.objects.all().select_related('student', 'vehicle', 'school')
+def get_student_routes(request, vehicle_id):
+    try:
+        routes = StudentRoute.objects.select_related('student', 'vehicle', 'school') \
+                                     .filter(vehicle_id=vehicle_id)
 
-    data = []
-    for route in routes:
-        data.append({
-            'id': route.id,
-            'student':{
-                'id': route.student.id if route.student else None,
-                'name': route.student.name if route.student else None,
-                'home_lat':route.student.home_lat if route.student else None,
-                'home_lng' :route.student.home_lng if route.student else None,
-                'parent' :route.student.parent if route.student else None,
-            },
-            'vehicle': {
-                'id': route.vehicle.id if route.vehicle else None,
-                'vehicle_number': route.vehicle.vehicle_number if route.vehicle else None,
-                'driver': route.vehicle.driver if route.vehicle and hasattr(route.vehicle, 'driver') else None,
-            },
-            'school' :{
-                'id': route.school.id if route.school else None,
-                'name': route.school.name if route.school else None,
-            },
-            'shift': route.shift,
-            'trip_number': route.trip_number,
-            'route_order': route.route_order,
-        })
+        if not routes.exists():
+            return JsonResponse({'error': 'No routes found for this vehicle'}, status=404)
 
-    return Response(data)
+        data = []
+        for route in routes:
+            data.append({
+                'student': {
+                    'id': route.student.id,
+                    'name': route.student.name,
+                    'home_lat': route.student.home_lat,
+                    'home_lng': route.student.home_lng,
+                    'parent': route.student.parent,
+                },
+                'vehicle': {
+                    'id': route.vehicle.id if route.vehicle else None,
+                    'vehicle_number': route.vehicle.vehicle_number if route.vehicle else None,
+                    'driver': getattr(route.vehicle, 'driver', None) if route.vehicle else None,
+                },
+                'school': {
+                    'id': route.school.id if route.school else None,
+                    'name': route.school.name if route.school else None,
+                },
+                'shift': route.shift,
+                'trip_number': route.trip_number,
+                'route_order': route.route_order,
+            })
+
+        return JsonResponse(data, safe=False)  # safe=False allows list output
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
