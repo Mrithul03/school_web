@@ -31,6 +31,7 @@ class Vehicle(models.Model):
     vehicle_number = models.CharField(max_length=20)
     capacity = models.PositiveIntegerField()
     number_of_trip = models.PositiveIntegerField(default=1)
+    phone = models.CharField(max_length=15)
 
     def __str__(self):
         return self.vehicle_number

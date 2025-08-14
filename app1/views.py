@@ -127,6 +127,7 @@ def current_user_profile(request):
                 'id': profile.vehicle.id if profile.vehicle else None,
                 'vehicle_number': profile.vehicle.vehicle_number if profile.vehicle else None,
                 'driver' :profile.vehicle.driver if profile.vehicle else None,
+                'phone' : profile.vehicle.phone if profile.vehicle else None,
             },
             'student': {
                 'id': profile.student.id if profile.student else None,
@@ -143,29 +144,35 @@ def current_user_profile(request):
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def students_list(request):
-    students = Student.objects.select_related('school', 'vehicle').all()
+def students_list(request, vehicle_id):
+    try:
+        students = Student.objects.select_related('school', 'vehicle') \
+                                   .filter(vehicle_id=vehicle_id)
 
-    data = []
-    for student in students:
-        data.append({
-            'id': student.id,
-            'name': student.name,
-            'parent': student.parent,
-            'phone': student.phone,
-            'trip_number': student.trip_number,
-            'school': {
-                'id': student.school.id if student.school else None,
-                'name': student.school.name if student.school else None,
-            },
-            'vehicle': {
-                'id': student.vehicle.id if student.vehicle else None,
-                'vehicle_number': student.vehicle.vehicle_number if student.vehicle else None,
-                'driver': student.vehicle.driver if student.vehicle and hasattr(student.vehicle, 'driver') else None,
-            }
-        })
+        data = []
+        for student in students:
+            data.append({
+                'id': student.id,
+                'name': student.name,
+                'parent': student.parent,
+                'phone': student.phone,
+                'school': {
+                    'id': student.school.id if student.school else None,
+                    'name': student.school.name if student.school else None,
+                },
+                'vehicle': {
+                    'id': student.vehicle.id if student.vehicle else None,
+                    'vehicle_number': student.vehicle.vehicle_number if student.vehicle else None,
+                    'driver': student.vehicle.driver if student.vehicle and hasattr(student.vehicle, 'driver') else None,
+                }
+            })
 
-    return JsonResponse(data, safe=False)
+        return JsonResponse(data, safe=False)  # ✅ moved outside loop
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
@@ -239,6 +246,7 @@ def get_student_routes(request, vehicle_id):
             data.append({
                 'student': {
                     'id': route.student.id,
+                    'phone':route.student.phone,
                     'name': route.student.name,
                     'home_lat': route.student.home_lat,
                     'home_lng': route.student.home_lng,
