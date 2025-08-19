@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views import View
 
-from .models import UserProfile,School,Student,VehicleLocation,Vehicle,StudentRoute
+from .models import UserProfile,School,Student,VehicleLocation,Vehicle,StudentRoute,Payment
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -15,6 +15,11 @@ from rest_framework.authentication import TokenAuthentication
 from django.http import JsonResponse
 from django.utils import timezone
 import json
+from decimal import Decimal
+from django.utils.timezone import now
+from django.utils.dateparse import parse_date
+
+
 
 
 # Create your views here.
@@ -203,17 +208,22 @@ def update_location(request):
     try:
         data = request.data
         print("📥 Incoming location data:", data)
-        
+
+        # Determine status automatically based on an "action" key
+        action = data.get("action")  # expected values: 'start' or 'stop'
+        status = "running" if action == "start" else "stopped"
+
         VehicleLocation.objects.create(
             vehicle_id=data['vehicle_id'],
             latitude=data['latitude'],
             longitude=data['longitude'],
-            status=data.get('status')
+            status=status
         )
-        return Response({"success": True})
+        return Response({"success": True, "status": status})
     except Exception as e:
         print("❌ Exception occurred:", e)
         return Response({"success": False, "error": str(e)}, status=500)
+
     
 
 @api_view(['GET'])
@@ -299,4 +309,58 @@ def update_student_location(request, student_id):
             "home_lng": student.home_lng
         }
     })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # token required
+def create_payment(request):
+    try:
+        data = request.data  # you don’t need to decode manually
+
+        student_id = data.get("student_id")
+        month = data.get("month")   # Expecting "YYYY-MM-DD" format
+        amount = data.get("amount")
+        is_paid = data.get("is_paid", False)
+
+        if not student_id or not month or not amount:
+            return JsonResponse({"error": "student_id, month, and amount are required"}, status=400)
+
+        student = Student.objects.get(id=student_id)
+
+        payment = Payment.objects.create(
+            student=student,
+            month=parse_date(month),
+            amount=Decimal(amount),
+            is_paid=is_paid,
+            paid_on=parse_date(data.get("paid_on")) if is_paid and data.get("paid_on") else None
+        )
+
+        return JsonResponse({
+            "id": payment.id,
+            "student": payment.student.name,
+            "month": payment.month.strftime("%B %Y") if payment.month else None,
+            "amount": str(payment.amount),
+            "is_paid": payment.is_paid,
+            "paid_on": str(payment.paid_on) if payment.paid_on else None,
+        }, status=201)
+
+    except Student.DoesNotExist:
+        return JsonResponse({"error": "Student not found"}, status=404)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_payments(request):
+    payments = Payment.objects.values(
+        "id",
+        "student_id",
+        "month",
+        "amount",
+        "is_paid",
+        "paid_on"
+    )
+    return Response(list(payments))
+
 
