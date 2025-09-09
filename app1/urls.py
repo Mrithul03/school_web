@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import login_user,current_user_profile,update_location,get_latest_location,students_list,get_student_routes,vehicle_location,update_student_location,create_payment,get_payments
+from .views import login_user,current_user_profile,update_location,get_latest_location,students_list,get_student_routes,vehicle_location,update_student_location,create_payment,get_payments,edit_route_order,parent_register
 
 urlpatterns = [
     path('api/login/', login_user, name='login_user'),
@@ -12,6 +12,11 @@ urlpatterns = [
     path('api/student/<int:student_id>/update-location/', update_student_location, name='update-student-location'),
     path("api/payment/", create_payment, name="create_payment"),
     path("api/payment-list/", get_payments, name="get_payments"),
+    # path('api/payment/<int:student_id>/update-payment/', edit_payment, name='update-payment-edit'),
+    path("api/routes/<int:route_id>/edit-route-order/", edit_route_order, name="edit_route_order"),
+    path("api/parent/register/", parent_register, name="parent-register"),
+
+
 
 
 ]

@@ -24,6 +24,58 @@ from django.utils.dateparse import parse_date
 
 # Create your views here.
 
+@api_view(["PATCH"])
+@permission_classes([AllowAny])  # Parents not logged in yet
+def parent_register(request):
+    phone = request.data.get("phone")
+    password = request.data.get("password")
+    parent_name = request.data.get("parent_name")
+    student_name = request.data.get("student_name")
+
+    if not phone:
+        return Response(
+            {"error": "Phone number is required."}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 1. Check phone exists in UserProfile
+    try:
+        profile = UserProfile.objects.get(phone=phone, role="parent")
+    except UserProfile.DoesNotExist:
+        return Response(
+            {"error": "Phone number not found. Please contact school."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = profile.user
+
+    # 2. Update password
+    if password:
+        user.set_password(password)
+        user.save()
+
+    # 3. Find student linked by parent's phone
+    student = Student.objects.filter(phone=phone).first()
+
+    if not student:
+        return Response(
+            {"error": "No student linked to this parent."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # 4. Update details
+    if student_name:
+        student.name = student_name
+    if parent_name:
+        student.parent = parent_name  # updates the `parent` CharField
+    student.save()
+
+    return Response(
+        {"success": True, "message": "Registration completed successfully."},
+        status=status.HTTP_200_OK,
+    )
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
@@ -138,6 +190,8 @@ def current_user_profile(request):
                 'id': profile.student.id if profile.student else None,
                 'name': profile.student.name if profile.student else None,
                 'parent': profile.student.parent if profile.student else None,
+                'home_lat':profile.student.home_lat if profile.student else None,
+                'home_lng':profile.student.home_lng if profile.student else None,
 
             }
         }
@@ -254,6 +308,7 @@ def get_student_routes(request, vehicle_id):
         data = []
         for route in routes:
             data.append({
+                'id' : route.id,
                 'student': {
                     'id': route.student.id,
                     'phone':route.student.phone,
@@ -363,4 +418,86 @@ def get_payments(request):
     )
     return Response(list(payments))
 
+# @api_view(['PATCH'])   # PATCH → partial update (only send changed fields)
+# @permission_classes([IsAuthenticated])
+# def edit_payment(request, payment_id):
+#     try:
+#         payment = Payment.objects.get(id=payment_id)
+
+#         data = request.data
+
+#         # Update fields only if provided
+#         if "student_id" in data:
+#             try:
+#                 student = Student.objects.get(id=data["student_id"])
+#                 payment.student = student
+#             except Student.DoesNotExist:
+#                 return JsonResponse({"error": "Student not found"}, status=404)
+
+#         if "month" in data:
+#             payment.month = parse_date(data["month"])
+
+#         if "amount" in data:
+#             payment.amount = Decimal(data["amount"])
+
+#         if "is_paid" in data:
+#             payment.is_paid = bool(data["is_paid"])
+#             if payment.is_paid and "paid_on" in data:
+#                 payment.paid_on = parse_date(data["paid_on"])
+#             elif not payment.is_paid:
+#                 payment.paid_on = None  # reset if unpaid
+
+#         payment.save()
+
+#         return JsonResponse({
+#             "id": payment.id,
+#             "student": payment.student.name if payment.student else None,
+#             "month": payment.month.strftime("%B %Y") if payment.month else None,
+#             "amount": str(payment.amount),
+#             "is_paid": payment.is_paid,
+#             "paid_on": str(payment.paid_on) if payment.paid_on else None,
+#         })
+
+#     except Payment.DoesNotExist:
+#         return JsonResponse({"error": "Payment not found"}, status=404)
+
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=400)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def edit_route_order(request, route_id):
+    try:
+        route = StudentRoute.objects.get(id=route_id)
+        data = request.data
+
+        updated = False
+
+        if "route_order" in data:
+            route.route_order = data["route_order"]
+            updated = True
+
+        if "trip_number" in data:
+            route.trip_number = data["trip_number"]
+            updated = True
+
+        if updated:
+            route.save()
+        else:
+            return JsonResponse({"error": "No valid fields to update"}, status=400)
+
+        return JsonResponse({
+            "id": route.id,
+            "student": route.student.name,
+            "vehicle": route.vehicle.vehicle_number,
+            "school": route.school.name,
+            "shift": route.shift,
+            "trip_number": route.trip_number,
+            "route_order": route.route_order,
+        })
+
+    except StudentRoute.DoesNotExist:
+        return JsonResponse({"error": "Route not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 

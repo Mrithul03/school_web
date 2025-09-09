@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
+from datetime import date
+
 
 class UserProfile(models.Model):
     ROLE_CHOICES = (
@@ -12,7 +14,8 @@ class UserProfile(models.Model):
     phone = models.CharField(max_length=15, unique=True)
     school = models.ForeignKey('School', on_delete=models.SET_NULL, null=True, blank=True)
     vehicle = models.ForeignKey('Vehicle', on_delete=models.SET_NULL, null=True, blank=True)
-    student = models.ForeignKey('student',on_delete=models.SET_NULL, null=True, blank=True)
+    student = models.ForeignKey('Student', on_delete=models.SET_NULL, null=True, blank=True)
+
 
     def __str__(self):
         return f"{self.user.username} ({self.role})"
@@ -81,14 +84,31 @@ class StudentRoute(models.Model):
         return f"{self.student.name} - {self.shift} Trip {self.trip_number}"
 
 class Payment(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    month = models.DateField()  # Use 1st of month to represent "July 2025"
+    MONTH_CHOICES = [
+        (1, "January"),
+        (2, "February"),
+        (3, "March"),
+        (4, "April"),
+        (5, "May"),
+        (6, "June"),
+        (7, "July"),
+        (8, "August"),
+        (9, "September"),
+        (10, "October"),
+        (11, "November"),
+        (12, "December"),
+    ]
+
+    student = models.ForeignKey("Student", on_delete=models.CASCADE)
+    month = models.IntegerField(choices=MONTH_CHOICES)  # dropdown Jan–Dec
+    year = models.IntegerField(default=date.today().year)  # keep track of year
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     is_paid = models.BooleanField(default=False)
     paid_on = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.student.name} - {self.month.strftime('%B %Y')} - {'Paid' if self.is_paid else 'Pending'}"
+        return f"{self.student.name} - {self.get_month_display()} {self.year} - {'Paid' if self.is_paid else 'Pending'}"
+
 
 class VehicleLocation(models.Model):
     STATUS_CHOICES = (
