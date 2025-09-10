@@ -101,11 +101,11 @@ class Payment(models.Model):
     ]
 
     student = models.ForeignKey("Student", on_delete=models.CASCADE)
-    month = models.IntegerField(choices=MONTH_CHOICES)  # ✅ Accepts 1–12
-    year = models.IntegerField(default=date.today().year)  # ✅ Integer year
+    month = models.IntegerField(choices=MONTH_CHOICES)  # Accepts 1–12
+    year = models.IntegerField(default=date.today().year)  # Integer year
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     is_paid = models.BooleanField(default=False)
-    paid_on = models.DateField(null=True, blank=True)  # ✅ Optional
+    paid_on = models.DateField(null=True, blank=True)  #  Optional
 
     def __str__(self):
         return f"{self.student.name} - {self.get_month_display()} {self.year} - {'Paid' if self.is_paid else 'Pending'}"

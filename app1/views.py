@@ -85,7 +85,7 @@ def login_user(request):
     role = request.data.get('role')  
     fcm_token = request.data.get('fcm_token')  # 👈 Get FCM token from frontend
 
-    print(f"📥 Login attempt:school_code={school_code} phone={phone}, password={password}")
+    print(f" Login attempt:school_code={school_code} phone={phone}, password={password}")
 
     try:
         profile = UserProfile.objects.get(phone=phone)
@@ -100,12 +100,12 @@ def login_user(request):
 
         # ✅ Check password
         if not user.check_password(password):
-            print("❌ Invalid password")
+            print(" Invalid password")
             return Response({'error': 'Invalid password'}, status=401)
         
         # ✅ Role check
         if role and profile.role.lower() != role.lower():
-            print("❌ Role mismatch")
+            print("Role mismatch")
             return Response({'error': f'User is not a {role}'}, status=401)
 
         # ✅ Clear previous tokens
@@ -116,16 +116,16 @@ def login_user(request):
             try:
         # Check if already linked student has the same phone
                 if profile.student and profile.student.phone == phone:
-                    print(f"✅ Already linked to student ID: {profile.student.id}")
+                    print(f" Already linked to student ID: {profile.student.id}")
                 else:
             # Try to find a new matching student
                     matched_student = Student.objects.get(phone=phone)
                     profile.student = matched_student
                     profile.save()
-                    print(f"✅ Linked to new student ID: {matched_student.id}")
+                    print(f" Linked to new student ID: {matched_student.id}")
             except Student.DoesNotExist:
                 profile.student = None
-                print("ℹ️ No matching student found for this phone")
+                print("ℹ No matching student found for this phone")
 
         if fcm_token:
             profile.fcm_token = fcm_token
@@ -145,7 +145,7 @@ def login_user(request):
         }, status=status.HTTP_200_OK)
 
     except UserProfile.DoesNotExist:
-        print("❌ UserProfile not found")
+        print(" UserProfile not found")
         return Response({'error': 'User does not exist'}, status=404)
 
 @api_view(['POST'])
@@ -261,7 +261,7 @@ def vehicle_location(request):
 def update_location(request):
     try:
         data = request.data
-        print("📥 Incoming location data:", data)
+        print(" Incoming location data:", data)
 
         # Determine status automatically based on an "action" key
         action = data.get("action")  # expected values: 'start' or 'stop'
@@ -275,7 +275,7 @@ def update_location(request):
         )
         return Response({"success": True, "status": status})
     except Exception as e:
-        print("❌ Exception occurred:", e)
+        print(" Exception occurred:", e)
         return Response({"success": False, "error": str(e)}, status=500)
 
     
