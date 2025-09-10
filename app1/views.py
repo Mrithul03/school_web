@@ -83,7 +83,7 @@ def login_user(request):
     phone =  request.data.get('phone')
     password = request.data.get('password')
     role = request.data.get('role')  
-    # fcm_token = request.data.get('fcm_token')  # 👈 Get FCM token from frontend
+    fcm_token = request.data.get('fcm_token')  # 👈 Get FCM token from frontend
 
     print(f"📥 Login attempt:school_code={school_code} phone={phone}, password={password}")
 
@@ -127,8 +127,8 @@ def login_user(request):
                 profile.student = None
                 print("ℹ️ No matching student found for this phone")
 
-        # if fcm_token:
-        #     profile.fcm_token = fcm_token
+        if fcm_token:
+            profile.fcm_token = fcm_token
         profile.save()
 
         return Response({
@@ -366,33 +366,36 @@ def update_student_location(request, student_id):
     })
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])  # token required
+@permission_classes([IsAuthenticated])
 def create_payment(request):
     try:
-        data = request.data  # you don’t need to decode manually
+        data = request.data
 
         student_id = data.get("student_id")
-        month = data.get("month")   # Expecting "YYYY-MM-DD" format
+        month = data.get("month")   # Expecting integer 1-12
+        year = data.get("year")     # Expecting integer year, e.g., 2025
         amount = data.get("amount")
         is_paid = data.get("is_paid", False)
 
-        if not student_id or not month or not amount:
-            return JsonResponse({"error": "student_id, month, and amount are required"}, status=400)
+        if not student_id or not month or not amount or not year:
+            return JsonResponse({"error": "student_id, month, year, and amount are required"}, status=400)
 
         student = Student.objects.get(id=student_id)
 
         payment = Payment.objects.create(
             student=student,
-            month=parse_date(month),
+            month=int(month),  # convert to int
+            year=int(year),    # convert to int
             amount=Decimal(amount),
             is_paid=is_paid,
-            paid_on=parse_date(data.get("paid_on")) if is_paid and data.get("paid_on") else None
+            paid_on=data.get("paid_on") if is_paid and data.get("paid_on") else None  # expects "YYYY-MM-DD" string
         )
 
         return JsonResponse({
             "id": payment.id,
             "student": payment.student.name,
-            "month": payment.month.strftime("%B %Y") if payment.month else None,
+            "month": payment.get_month_display(),
+            "year": payment.year,
             "amount": str(payment.amount),
             "is_paid": payment.is_paid,
             "paid_on": str(payment.paid_on) if payment.paid_on else None,

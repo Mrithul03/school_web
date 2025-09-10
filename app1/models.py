@@ -15,6 +15,7 @@ class UserProfile(models.Model):
     school = models.ForeignKey('School', on_delete=models.SET_NULL, null=True, blank=True)
     vehicle = models.ForeignKey('Vehicle', on_delete=models.SET_NULL, null=True, blank=True)
     student = models.ForeignKey('Student', on_delete=models.SET_NULL, null=True, blank=True)
+    fcm_token = models.CharField(max_length=256, blank=True, null=True)
 
 
     def __str__(self):
@@ -100,14 +101,15 @@ class Payment(models.Model):
     ]
 
     student = models.ForeignKey("Student", on_delete=models.CASCADE)
-    month = models.IntegerField(choices=MONTH_CHOICES)  # dropdown Jan–Dec
-    year = models.IntegerField(default=date.today().year)  # keep track of year
+    month = models.IntegerField(choices=MONTH_CHOICES)  # ✅ Accepts 1–12
+    year = models.IntegerField(default=date.today().year)  # ✅ Integer year
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     is_paid = models.BooleanField(default=False)
-    paid_on = models.DateField(null=True, blank=True)
+    paid_on = models.DateField(null=True, blank=True)  # ✅ Optional
 
     def __str__(self):
         return f"{self.student.name} - {self.get_month_display()} {self.year} - {'Paid' if self.is_paid else 'Pending'}"
+
 
 
 class VehicleLocation(models.Model):
