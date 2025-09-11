@@ -382,13 +382,28 @@ def create_payment(request):
 
         student = Student.objects.get(id=student_id)
 
+        # ✅ Check if payment already exists
+        existing_payment = Payment.objects.filter(
+            student=student,
+            month=int(month),
+            year=int(year),
+            is_paid=True  # only block if already marked paid
+        ).first()
+
+        if existing_payment:
+            return JsonResponse(
+                {"error": f"Payment already exists for {student.name}, {month}/{year}"},
+                status=400
+            )
+
+        # ✅ Create new payment
         payment = Payment.objects.create(
             student=student,
-            month=int(month),  # convert to int
-            year=int(year),    # convert to int
+            month=int(month),
+            year=int(year),
             amount=Decimal(amount),
             is_paid=is_paid,
-            paid_on=data.get("paid_on") if is_paid and data.get("paid_on") else None  # expects "YYYY-MM-DD" string
+            paid_on=data.get("paid_on") if is_paid and data.get("paid_on") else None
         )
 
         return JsonResponse({
@@ -406,6 +421,7 @@ def create_payment(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
