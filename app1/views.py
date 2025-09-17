@@ -19,8 +19,48 @@ from decimal import Decimal
 from django.utils.timezone import now
 from django.utils.dateparse import parse_date
 
+import json
+from google.oauth2 import service_account
+from google.auth.transport import requests
+from django.http import JsonResponse
+from django.conf import settings
 
 
+# === Firebase Setup ===
+SERVICE_ACCOUNT_FILE = 'app1/school-manager-aeaf5-firebase-adminsdk-fbsvc-c962269990.json'
+credentials = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE,
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+
+def get_access_token():
+    request = google.auth.transport.requests.Request()
+    credentials.refresh(request)
+    return credentials.token
+
+def send_fcm_notification(device_token, title, body):
+    fcm_url = 'https://fcm.googleapis.com/v1/projects/blueeyes-a1413/messages:send'
+
+    message = {
+        "message": {
+            "token": device_token,
+            "notification": {
+                "title": title,
+                "body": body
+            }
+        }
+    }
+
+    headers = {
+        'Authorization': f'Bearer {get_access_token()}',
+        'Content-Type': 'application/json; UTF-8'
+    }
+
+    response = requests.post(fcm_url, headers=headers, data=json.dumps(message))
+    if response.status_code == 200:
+        print("✅ Notification sent successfully")
+    else:
+        print(f"Error sending notification: {response.status_code}, {response.text}")
 
 # Create your views here.
 
@@ -91,24 +131,24 @@ def login_user(request):
         profile = UserProfile.objects.get(phone=phone)
         user = profile.user
 
-        # ✅ Check if school_code matches
+        #  Check if school_code matches
         school = School.objects.get(school_code=school_code)
 
         # Now check if the user’s school matches this instance
         if profile.school != school:
             return Response({'error': 'User does not belong to this school'}, status=401)
 
-        # ✅ Check password
+        #  Check password
         if not user.check_password(password):
             print(" Invalid password")
             return Response({'error': 'Invalid password'}, status=401)
         
-        # ✅ Role check
+        #  Role check
         if role and profile.role.lower() != role.lower():
             print("Role mismatch")
             return Response({'error': f'User is not a {role}'}, status=401)
 
-        # ✅ Clear previous tokens
+        #  Clear previous tokens
         Token.objects.filter(user=user).delete()
         token = Token.objects.create(user=user)
 
@@ -226,7 +266,7 @@ def students_list(request, vehicle_id):
                 }
             })
 
-        return JsonResponse(data, safe=False)  # ✅ moved outside loop
+        return JsonResponse(data, safe=False)  #  moved outside loop
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -253,6 +293,49 @@ def vehicle_location(request):
         return JsonResponse(data)
     except VehicleLocation.DoesNotExist:
         return JsonResponse({'error': 'location not found'}, status=404)
+
+
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def update_location(request):
+#     try:
+#         data = request.data
+#         print(" Incoming location data:", data)
+
+#         action = data.get("action")  # expected: 'start' or 'stop'
+#         status = "running" if action == "start" else "stopped"
+
+#         vehicle = Vehicle.objects.get(id=data['vehicle_id'])
+
+#         # Save location
+#         VehicleLocation.objects.create(
+#             vehicle=vehicle,
+#             latitude=data['latitude'],
+#             longitude=data['longitude'],
+#             status=status
+#         )
+
+#         #  Notify all parents if tracking starts
+#         if action == "start":
+#             students = Student.objects.filter(vehicle=vehicle)
+#             parent_profiles = UserProfile.objects.filter(student__in=students, role="parent")
+
+#             # Send notification to each parent individually
+#             for parent in parent_profiles:
+#                 if parent.fcm_token:
+#                     send_fcm_notification(
+#                         parent.fcm_token,
+#                         "Tracking Started",
+#                         f"Your child's bus {vehicle.vehicle_number} is now being tracked 🚍"
+#                     )
+
+#         return Response({"success": True, "status": status})
+
+#     except Vehicle.DoesNotExist:
+#         return Response({"success": False, "error": "Vehicle not found"}, status=404)
+#     except Exception as e:
+#         print(" Exception occurred:", e)
+#         return Response({"success": False, "error": str(e)}, status=500)
 
 
 
@@ -427,15 +510,27 @@ def create_payment(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def get_payments(request):
-    payments = Payment.objects.values(
-        "id",
-        "student_id",
-        "month",
-        "amount",
-        "is_paid",
-        "paid_on"
-    )
-    return Response(list(payments))
+    try:
+        profile = UserProfile.objects.select_related("student").get(user=request.user)
+
+        if not profile.student:
+            return Response({"error": "No student linked to this user."}, status=400)
+
+        payments = Payment.objects.filter(student=profile.student).values(
+            "id",
+            "student_id",
+            "month",
+            "year",
+            "amount",
+            "is_paid",
+            "paid_on"
+        )
+        return Response(list(payments))
+
+    except UserProfile.DoesNotExist:
+        return Response({"error": "UserProfile not found"}, status=404)
+
+
 
 # @api_view(['PATCH'])   # PATCH → partial update (only send changed fields)
 # @permission_classes([IsAuthenticated])
