@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import dj_database_url
 
 from pathlib import Path
 
@@ -164,3 +163,4 @@ CHANNEL_LAYERS = {
 }
 
 
+GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "app1/school-manager-aeaf5-firebase-adminsdk-fbsvc-22ea12d569.json"

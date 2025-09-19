@@ -27,7 +27,7 @@ from django.conf import settings
 
 
 # === Firebase Setup ===
-SERVICE_ACCOUNT_FILE = 'app1/school-manager-aeaf5-firebase-adminsdk-fbsvc-c962269990.json'
+SERVICE_ACCOUNT_FILE = 'app1/school-manager-aeaf5-firebase-adminsdk-fbsvc-22ea12d569.json'
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
