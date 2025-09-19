@@ -58,7 +58,7 @@ def send_fcm_notification(device_token, title, body):
 
     response = requests.post(fcm_url, headers=headers, data=json.dumps(message))
     if response.status_code == 200:
-        print("✅ Notification sent successfully")
+        print(" Notification sent successfully")
     else:
         print(f"Error sending notification: {response.status_code}, {response.text}")
 
