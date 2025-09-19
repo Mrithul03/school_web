@@ -20,47 +20,47 @@ from django.utils.timezone import now
 from django.utils.dateparse import parse_date
 
 import json
-from google.oauth2 import service_account
-from google.auth.transport import requests
-from django.http import JsonResponse
-from django.conf import settings
+# from google.oauth2 import service_account
+# from google.auth.transport import requests
+# from django.http import JsonResponse
+# from django.conf import settings
 
 
-# === Firebase Setup ===
-SERVICE_ACCOUNT_FILE = 'app1/school-manager-aeaf5-firebase-adminsdk-fbsvc-22ea12d569.json'
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE,
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
+# # === Firebase Setup ===
+# SERVICE_ACCOUNT_FILE = 'app1/school-manager-aeaf5-firebase-adminsdk-fbsvc-22ea12d569.json'
+# credentials = service_account.Credentials.from_service_account_file(
+#     SERVICE_ACCOUNT_FILE,
+#     scopes=["https://www.googleapis.com/auth/cloud-platform"]
+# )
 
-def get_access_token():
-    request = google.auth.transport.requests.Request()
-    credentials.refresh(request)
-    return credentials.token
+# def get_access_token():
+#     request = google.auth.transport.requests.Request()
+#     credentials.refresh(request)
+#     return credentials.token
 
-def send_fcm_notification(device_token, title, body):
-    fcm_url = 'https://fcm.googleapis.com/v1/projects/blueeyes-a1413/messages:send'
+# def send_fcm_notification(device_token, title, body):
+#     fcm_url = 'https://fcm.googleapis.com/v1/projects/blueeyes-a1413/messages:send'
 
-    message = {
-        "message": {
-            "token": device_token,
-            "notification": {
-                "title": title,
-                "body": body
-            }
-        }
-    }
+#     message = {
+#         "message": {
+#             "token": device_token,
+#             "notification": {
+#                 "title": title,
+#                 "body": body
+#             }
+#         }
+#     }
 
-    headers = {
-        'Authorization': f'Bearer {get_access_token()}',
-        'Content-Type': 'application/json; UTF-8'
-    }
+#     headers = {
+#         'Authorization': f'Bearer {get_access_token()}',
+#         'Content-Type': 'application/json; UTF-8'
+#     }
 
-    response = requests.post(fcm_url, headers=headers, data=json.dumps(message))
-    if response.status_code == 200:
-        print(" Notification sent successfully")
-    else:
-        print(f"Error sending notification: {response.status_code}, {response.text}")
+#     response = requests.post(fcm_url, headers=headers, data=json.dumps(message))
+#     if response.status_code == 200:
+#         print(" Notification sent successfully")
+#     else:
+#         print(f"Error sending notification: {response.status_code}, {response.text}")
 
 # Create your views here.
 
